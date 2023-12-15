@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Информация о пользователе</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        label, input {
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        #userInfo {
+            margin-top: 20px;
+            color: green;
+            align-items: center; /* Выравнивание элементов по центру по вертикали */
+            display: none;
+        }
+
+        #summonerIcon {
+            width: 50px; /* Ограничение ширины иконки */
+            height: 50px; /* Ограничение высоты иконки */
+            border-radius: 50%; /* Скругление углов */
+            margin-right: 10px; /* Отступ справа от иконки */
+        }
+    </style>
+</head>
+<body>
+<h1>Получение информации о пользователе</h1>
+<form id="summonerForm">
+    <label for="server">Сервер:</label>
+    <input type="text" id="server" name="server" required>
+    <label for="nickname">Имя пользователя:</label>
+    <input type="text" id="nickname" name="nickname" required>
+    <button type="submit">Отправить</button>
+</form>
+<div id="userInfo">
+    <img id="summonerIcon" src="" alt="Иконка пользователя">
+    <div>
+        <p>Имя пользователя: <span id="summonerName"></span></p>
+        <p>Уровень пользователя: <span id="summonerLevel"></span></p>
+        <p>soloQ: <span id="summonerRankSolo"></span>
+            <span id="summonerSoloLP"></span></p>
+
+        <p>flex: <span id="summonerRankFlex"></span>
+            <span id="summonerFlexLP"></span></p>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#summonerForm').on('submit', function(event) {
+            event.preventDefault();
+
+            var server = $('#server').val();
+            var summoner = $('#nickname').val().replace(/ /g, '+');
+            $('#userInfo').css('display', 'flex');
+            fetchSummonerData(server, summoner);
+        });
+
+        function fetchSummonerData(server, summoner) {
+            $.ajax({
+                url: `/practice1/${server}/${summoner}`,
+                method: 'GET',
+                success: function(summonerData) {
+                    $('#summonerName').text(summonerData.name);
+                    $('#summonerLevel').text(summonerData.summonerLevel);
+                    const profileIconId = summonerData.profileIconId;
+                    const version = '13.24.1';
+                    const iconUrl = `http://ddragon.leagueoflegends.com/cdn/${version}/img/profileicon/${profileIconId}.png`;
+
+                    $('#summonerIcon').attr('src', iconUrl);
+                    fetchSummonerRank(server, summonerData.id);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Ошибка:', textStatus, errorThrown);
+                }
+            });
+        }
+
+        function fetchSummonerRank(server, summonerId) {
+            $.ajax({
+                url: `/practice1/${server}/${summonerId}/entries`,
+                method: 'GET',
+                success: function(rankDataArray) {
+                    if (rankDataArray && rankDataArray.length > 0) {
+                        const soloRankData = rankDataArray.find(rank => rank.queueType === "RANKED_SOLO_5x5");
+                        const flexRankData = rankDataArray.find(rank => rank.queueType === "RANKED_FLEX_SR");
+
+                        if (soloRankData) {
+                            $('#summonerRankSolo').text(`${soloRankData.tier} ${soloRankData.rank}`);
+                            $('#summonerSoloLP').text(`${soloRankData.leaguePoints} LP`);
+                        } else {
+                            $('#summonerRankSolo').text('Ранг не найден');
+                        }
+
+                        if (flexRankData) {
+                            $('#summonerRankFlex').text(`${flexRankData.tier} ${flexRankData.rank}`);
+                            $('#summonerFlexLP').text(`${flexRankData.leaguePoints} LP`);
+                        } else {
+                            $('#summonerRankFlex').text('Ранг не найден');
+                        }
+                    } else {
+                        $('#summonerRankSolo').text('Ранг не найден');
+                        $('#summonerRankFlex').text('Ранг не найден');
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    console.error('Ошибка при получении ранга:', textStatus, errorThrown);
+                }
+            });
+        }
+    });
+</script>
+
+
+
+</body>
+</html>
